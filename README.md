@@ -8,7 +8,10 @@ install conan, cmake (3.13+) and a C++17 compiler. The steps below are tested fo
 
 add conan remotes
 ```shell script
-conan remote add tsl https://api.bintray.com/conan/tessil/tsl && conan remote add public-conan https://api.bintray.com/conan/bincrafters/public-conan && conan remote add stiffstream https://api.bintray.com/conan/stiffstream/public
+conan remote add tsl https://api.bintray.com/conan/tessil/tsl
+conan remote add bincrafters https://api.bintray.com/conan/bincrafters/public-conan
+conan remote add stiffstream https://api.bintray.com/conan/stiffstream/public
+conan remote add dice-group https://api.bintray.com/conan/dice-group/tentris
 ```
 and create a conan profile
  ```shell script
