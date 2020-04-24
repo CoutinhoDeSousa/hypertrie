@@ -1,4 +1,4 @@
-cd # hypertrie
+# hypertrie
 A flexible data structure for low-rank, sparse tensors supporting slices by any dimension and einstein summation (einsum)
 
 ## build
