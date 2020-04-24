@@ -19,20 +19,21 @@ namespace einsum::internal {
 	std::shared_ptr<Operator<value_type, key_part_type, map_type, set_type>>
 	Operator<value_type, key_part_type, map_type, set_type>::construct(const std::shared_ptr<Subscript> &subscript,
 																	   const std::shared_ptr<Context> &context) {
+	    // hier an der stelle wird gehooked d.h
 		switch (subscript->type) {
-			case Subscript::Type::Join:
+			case Subscript::Type::Join: // std fall
 				return std::make_shared<JoinOperator<value_type, key_part_type, map_type, set_type>>(subscript,
 																									 context);
-			case Subscript::Type::Resolve:
+			case Subscript::Type::Resolve: // ergebnisse vorkommen sollen
 				return std::make_shared<ResolveOperator<value_type, key_part_type, map_type, set_type>>(subscript,
 																										context);
-			case Subscript::Type::Count:
+			case Subscript::Type::Count: // // lonely auflösen , dh wenn sie nicht vorkommen soll
 				return std::make_shared<CountOperator<value_type, key_part_type, map_type, set_type>>(subscript,
 																									  context);
-			case Subscript::Type::Cartesian:
+			case Subscript::Type::Cartesian: //
 				return std::make_shared<CartesianOperator<value_type, key_part_type, map_type, set_type>>(subscript,
 																										  context);
-			case Subscript::Type::EntryGenerator:
+			case Subscript::Type::EntryGenerator: //
 				return std::make_shared<EntryGeneratorOperator<value_type, key_part_type, map_type, set_type>>(
 						subscript, context);
 			default:
@@ -66,7 +67,9 @@ namespace einsum::internal {
 				: subscript(std::move(subscript)), context{std::make_shared<Context>(timeout)},
 				  operands(operands),
 				  op{Operator_t::construct(this->subscript, context)},
-				  entry{0, Key_t(this->subscript->resultLabelCount(), std::numeric_limits<key_part_type>::max())} {}
+				  entry{0, Key_t(this->subscript->resultLabelCount(), std::numeric_limits<key_part_type>::max())} {
+            // set Operand reihenfolge
+		}
 
 		[[nodiscard]] const std::shared_ptr<Subscript> &getSubscript() const {
 			return subscript;
@@ -149,7 +152,9 @@ namespace einsum::internal {
 				: subscript(std::move(subscript)), context{std::make_shared<Context>(timeout)},
 				  operands(operands),
 				  op{Operator_t::construct(this->subscript, context)},
-				  entry{false, Key_t(this->subscript->resultLabelCount(), std::numeric_limits<key_part_type>::max())} {}
+				  entry{false, Key_t(this->subscript->resultLabelCount(), std::numeric_limits<key_part_type>::max())} {
+		    // set Properties von Einsum
+		}
 
 		[[nodiscard]] const std::shared_ptr<Subscript> &getSubscript() const {
 			return subscript;

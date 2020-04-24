@@ -14,7 +14,7 @@ namespace einsum::internal {
 		using const_BoolHypertrie_t = const_BoolHypertrie<key_part_type, map_type, set_type>;
 
 		/**
-		 *
+		 * Method to get the LAbel with the smallest cardinality (first found if many have the same cardinality)
 		 * @param operands
 		 * @param label_candidates
 		 * @param sc
@@ -23,7 +23,10 @@ namespace einsum::internal {
 		static Label getMinCardLabel(const std::vector<const_BoolHypertrie_t> &operands,
 		                             const std::shared_ptr<Subscript> &sc,
 		                             std::shared_ptr<Context> context) {
+			// Max Idenpended Set gibts schon ? subscribt hash auf Represäntation auf is matched, bau es mir
+			// getIndendetSet()
 			const tsl::hopscotch_set <Label> &operandsLabelSet = sc->getOperandsLabelSet();
+			// lonely labels evtl rausschmeissen, weil die anders übergangen werden
 			const tsl::hopscotch_set <Label> &lonely_non_result_labels = sc->getLonelyNonResultLabelSet();
 			if (operandsLabelSet.size() == 1) {
 				return *operandsLabelSet.begin();
@@ -32,6 +35,10 @@ namespace einsum::internal {
 				Label min_label = *operandsLabelSet.begin();
 				double min_cardinality = std::numeric_limits<double>::infinity();
 				for (const Label label : operandsLabelSet) {
+				    // Labels die nicht gejoind werden müssen, und nciht rechts stehen
+				    /*
+				     * 
+				     */
 					if (lonely_non_result_labels.count(label))
 						continue;
 					const double label_cardinality = calcCard(operands, label, sc);
@@ -40,6 +47,7 @@ namespace einsum::internal {
 						min_label = label;
 					}
 				}
+				// std Min label wird zurück gegeben , wenn alle nicht im result sind klommt das standard min label (das erste )
 				return min_label;
 			}
 		}

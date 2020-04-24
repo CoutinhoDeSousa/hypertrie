@@ -17,7 +17,7 @@ class Hypertrie(ConanFile):
     exports = "LICENSE.txt"
     exports_sources = "include/*", "thirdparty/*", "CMakeLists.txt", "cmake/*"
     no_copy_source = True
-
+    recipe_folder = '/home/pcds/workspace/hypertrie'
     def set_version(self):
         env_version = os.getenv("hypertrie_deploy_version", False)
         if env_version:

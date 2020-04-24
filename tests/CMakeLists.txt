@@ -16,6 +16,7 @@ if (hypertrie_LIBTORCH_PATH)
             ${TORCH_LIBRARIES}
             )
     # define C++ preprocess flag to include the tests depending on pytorch
+    message("Da wollen wir hin" )
     add_compile_definitions(HYPERTRIE_ENABLE_LIBTORCH)
 endif ()
 

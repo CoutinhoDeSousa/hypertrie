@@ -131,9 +131,11 @@ namespace hypertrie::tests::einsum {
 
 
 	TEST_CASE("run simple cases", "[einsum]") {
-
+            // Hier extra Tests und auskommentieren
 		std::vector<std::string> subscript_strs{
-				"a->a",
+		        //"ab->c", // Testing started at 22:25 ...///home/pcds/workspace/hypertrie/cmake-build-debug/tests/tests -r xml -d yes -//tests: /home/pcds/workspace/hypertrie/include/Dice/einsum/internal/Subscript                ///home/pcds/workspace/hypertrie/tests/TestEinsum.cpp:69: Failure:                //fatal error                //Process finished with exit code 134 (interrupted by signal 6: SIGABRT)
+				/*"abcdefg->bcd",
+		        "a->a",
 				"ab->a",
 				"ab->b",
 				"ab->ab",
@@ -143,7 +145,7 @@ namespace hypertrie::tests::einsum {
 				"ab,a->b",
 				"ab,a->ab",
 				"ab,a->ba",
-				"a,b->a",
+				"a,b->a", // b gibt mir ne Anzahl; daher zuerst machen um zu schauen wie oft die a's anzuzeigen sind
 				"a,b->b",
 				"a,b->ab",
 				"aa,bb->ab",
@@ -161,6 +163,8 @@ namespace hypertrie::tests::einsum {
 				"ab,bc,ca->abc",
 				"ab,bc,ca,ax,xy,ya->a",
 				"aa,ae,ac,ad,a,ab->abcde"
+				 */
+				"abc,cde->abde"
 
 		};
 		for (bool empty : {false, true}) {

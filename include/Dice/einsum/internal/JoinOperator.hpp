@@ -97,13 +97,15 @@ namespace einsum::internal {
 			if (label != last_label) {
 				label_poss_in_ops = this->subscript->getLabelPossInOperands(label);
 				is_result_label = this->subscript->isResultLabel(label);
-				if (is_result_label)
+				if (is_result_label) // result label == steht rechts
 					label_pos_in_result = this->subscript->getLabelPosInResult(label);
 			}
+			// hier hole ich mir das nächste subscript und von dem möchte ich den typen ändern.
 			const std::shared_ptr<Subscript> &next_subscript = this->subscript->removeLabel(label);
 			// check if sub_operator was not yet initialized or if the next subscript is different
+            // schau ob der suboperator der exisitiert oder sich geändert hat
 			if (not sub_operator or sub_operator->hash() != next_subscript->hash()) {
-				sub_operator = Operator_t::construct(next_subscript, this->context);
+			    sub_operator = Operator_t::construct(next_subscript, this->context);
 			}
 
 			// initialize the join
