@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.13)
 project(hypertrie VERSION 0.5.3)
 set(CMAKE_CXX_STANDARD 17)
 
+
 include(${CMAKE_BINARY_DIR}/conan_paths.cmake)
 
 if (NOT EXISTS ${CMAKE_BINARY_DIR}/CMakeCache.txt)
@@ -47,6 +48,10 @@ find_package(fmt CONFIG REQUIRED)
 SET(Boost_USE_STATIC_LIBS ON)
 find_package(Boost REQUIRED COMPONENTS)
 
+#added igraph
+find_package(igraph REQUIRED)
+include_directories( ${IGRAPH_INCLUDES} )
+# end igraph
 add_library(hypertrie INTERFACE)
 add_library(hypertrie::hypertrie ALIAS hypertrie)
 
@@ -65,8 +70,8 @@ target_link_libraries(hypertrie INTERFACE
         Boost::boost
         Threads::Threads
         tsl-sparse-map::tsl-sparse-map
+        ${IGRAPH_LIBRARIES}
         )
-
 # testing
 option(hypertrie_BUILD_TESTS "Build test programs" OFF)
 if (hypertrie_BUILD_TESTS)

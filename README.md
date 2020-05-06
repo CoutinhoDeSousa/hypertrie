@@ -16,6 +16,19 @@ conan profile new --detect default
 conan profile update settings.compiler.libcxx=libstdc++11 default
  ```
 
+install iGraph (tested with version 0.8.2)
+https://igraph.org/c/#downloads 
+after downloading and unpacking open a terminal in the unpacked folder
+
+ ```shell script
+./configure
+make
+make check
+make install
+```
+
+now there should be a folder in /usr/local/include/ named igraph
+
 ### build
 
 ```shell script

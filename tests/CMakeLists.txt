@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.13)
 
+
+
 find_package(Catch2 REQUIRED CONFIG)
 add_executable(tests Tests.cpp)
 target_link_libraries(tests PRIVATE

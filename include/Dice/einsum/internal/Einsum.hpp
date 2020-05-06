@@ -11,7 +11,13 @@
 #include "Dice/einsum/internal/CountOperator.hpp"
 #include "Dice/einsum/internal/EntryGeneratorOperator.hpp"
 #include "Dice/einsum/internal/Context.hpp"
+extern "C"
+{
 
+#include <igraph/igraph.h>
+
+// #include <igraph/igraph_cliques.h>  // import for 3.3 igraph_maximal_independent_vertex_sets
+}
 namespace einsum::internal {
 
 	template<typename value_type, typename key_part_type, template<typename, typename> class map_type,
@@ -68,6 +74,31 @@ namespace einsum::internal {
 				  operands(operands),
 				  op{Operator_t::construct(this->subscript, context)},
 				  entry{0, Key_t(this->subscript->resultLabelCount(), std::numeric_limits<key_part_type>::max())} {
+
+            igraph_t graph;
+            igraph_vector_t v1,v2;
+            int ret;
+            /*
+             * Start building a graph
+             */
+
+            //use this->subscript->getRawSubscript().operands.length
+            igraph_vector_init(&v1, 4);
+            VECTOR(v1)[0] = 0;
+            VECTOR(v1)[1] = 1;
+            VECTOR(v1)[2] = 2;
+            VECTOR(v1)[3] = 0;
+            igraph_create(&graph,&v1,0,0);
+            std::cout << igraph_vcount(&graph) << std::endl;
+
+            /*
+             * End building a graph
+             */
+
+            for (const auto &operand_sc : this->subscript->getRawSubscript().operands) {
+
+            }
+
             // set Operand reihenfolge
 		}
 
