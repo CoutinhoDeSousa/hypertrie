@@ -132,7 +132,7 @@ namespace hypertrie::tests::einsum {
 	TEST_CASE("run simple cases", "[einsum]") {
             // Hier extra Tests und auskommentieren
 		std::vector<std::string> subscript_strs{
-		        "ab,bc,cde,ef,gh,i,kl,j->abcde"
+		        "ab,bc->ac"
         };
 		for (bool empty : {false, true}) {
 			SECTION("empty = {}"_format(empty))for (auto excl_max : {4, 7, 10, 15}) {
