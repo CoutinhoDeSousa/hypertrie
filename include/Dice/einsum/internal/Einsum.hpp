@@ -18,6 +18,13 @@ extern "C"
 #include <igraph/igraph.h>
 #include <igraph/igraph_cliques.h>  // import for 3.3 igraph_maximal_independent_vertex_sets
 }
+
+struct lookup{
+    char label;
+    unsigned weight;
+    size_t node;
+};
+
 namespace einsum::internal {
 
 	template<typename value_type, typename key_part_type, template<typename, typename> class map_type,
@@ -83,34 +90,40 @@ namespace einsum::internal {
              * Start building a graph
              */
             std::vector<int> edges;
+            std::vector<size_t> weights;
 
             for (const auto &operand_sc : this->subscript->getRawSubscript().operands) {
+                for(const auto &op_for_weight: operand_sc){
+                    weights.push_back(op_for_weight - 'a'); // add all operands for weight count later
+                }
                 //das noch verbessern
                 if(operand_sc.size() == 2){
-                    edges.push_back(operand_sc[0]);
-                    edges.push_back(operand_sc[1]);
+                    edges.push_back(operand_sc[0] - 'a');
+                    edges.push_back(operand_sc[1] - 'a');
                 }
                 else if(operand_sc.size() == 3){
-                    edges.push_back(operand_sc[0]);
-                    edges.push_back(operand_sc[1]);
-                    edges.push_back(operand_sc[0]);
-                    edges.push_back(operand_sc[2]);
-                    edges.push_back(operand_sc[1]);
-                    edges.push_back(operand_sc[2]);
+                    edges.push_back(operand_sc[0] - 'a');
+                    edges.push_back(operand_sc[1] - 'a' );
+                    edges.push_back(operand_sc[0] - 'a');
+                    edges.push_back(operand_sc[2] - 'a');
+                    edges.push_back(operand_sc[1] - 'a');
+                    edges.push_back(operand_sc[2] - 'a');
                 }
             }
 
-            // hier evtl in real_t array convertieren
+            std::sort(weights.begin(),weights.end()); // vllt anders machen
+                // hier evtl in real_t array convertieren
 
             int sizeArray = edges.size();
             igraph_real_t e[sizeArray];
             std::copy(edges.begin(),edges.end(),e);
-            igraph_vector_view(&v, e, sizeof(e)/sizeof(double));
+            igraph_vector_view(&v, e, sizeArray);
             igraph_create(&graph,&v, 0 , IGRAPH_UNDIRECTED);
 
             igraph_maximal_independent_vertex_sets(&graph,&mis);
 
-            /* // find the "best" mis
+            /*
+            // find the "best" mis
             size_t best_mis = 0;
             size_t best_size = 0;
 
@@ -122,11 +135,11 @@ namespace einsum::internal {
                 size_t tmp_mis_size = igraph_vector_size(tmp_mis);
                 size_t x = 0;
                 for (size_t j = 0 ; j < tmp_mis_size; j++){
-                    x += r_wei
+                    ;;
                 }
 
             }
-             */
+            */
 
             igraph_vector_t *best_mis = (igraph_vector_t*)igraph_vector_ptr_e(&mis, long(0)); // 0 ersetzen durch "bestes"
             const size_t size_best_mis = igraph_vector_size(best_mis);
