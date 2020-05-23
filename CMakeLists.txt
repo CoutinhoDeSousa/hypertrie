@@ -24,6 +24,9 @@ else ()
 endif ()
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra -g -O0")
 
+#copied from https://github.com/dice-group/tentris/blob/042c1bf24d04b1962c70e4f3f2eee2a855667d01/CMakeLists.txt#L29
+LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/copyDirectory)
+
 set(THREADS_PREFER_PTHREAD_FLAG)
 find_package(Threads REQUIRED)
 
