@@ -4,6 +4,7 @@
 #include <cmath>
 #include "Dice/einsum/internal/Subscript.hpp"
 #include "Dice/einsum/internal/Entry.hpp"
+#include "Context.hpp"
 
 namespace einsum::internal {
 
@@ -26,31 +27,34 @@ namespace einsum::internal {
 			// Max Idenpended Set gibts schon ? subscribt hash auf Represäntation auf is matched, bau es mir
 			// getIndendetSet()
 			const tsl::hopscotch_set <Label> &operandsLabelSet = sc->getOperandsLabelSet();
+
 			// lonely labels evtl rausschmeissen, weil die anders übergangen werden
 			const tsl::hopscotch_set <Label> &lonely_non_result_labels = sc->getLonelyNonResultLabelSet();
-			if (operandsLabelSet.size() == 1) {
+			if (operandsLabelSet.size() == 1 || context->mis.size() == 0) {
 				return *operandsLabelSet.begin();
 			} else {
 
-				Label min_label = *operandsLabelSet.begin();
+                /*Label min_label = *operandsLabelSet.begin();
 				double min_cardinality = std::numeric_limits<double>::infinity();
 				for (const Label label : operandsLabelSet) {
 				    // Labels die nicht gejoind werden müssen, und nciht rechts stehen
-				    /*
-				     * 
-				     */
+				    				     *
 					if (lonely_non_result_labels.count(label))
 						continue;
 					const double label_cardinality = calcCard(operands, label, sc);
 					if (label_cardinality < min_cardinality) {
 						min_cardinality = label_cardinality;
 						min_label = label;
-					}
-				}
+					}				     */
+                Label returnLabel = context->mis[0]; //Take the first of the MIS & erase it then
+                context->mis.erase(context->mis.begin());
+                return returnLabel;
+            }
+
 				// std Min label wird zurück gegeben , wenn alle nicht im result sind klommt das standard min label (das erste )
-				return min_label;
+				//return min_label;
 			}
-		}
+
 
 	protected:
 		/**

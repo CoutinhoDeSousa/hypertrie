@@ -184,9 +184,19 @@ namespace einsum::internal {
              * End building a graph
              */
 
+            // retransformation to labels
+            std::vector<char> vmis_labels;
+            std::map<char,int>::const_iterator reverseIt;
+            for (reverseIt = edgesList.begin(); reverseIt != edgesList.end() ; ++reverseIt){
+                for(auto i =0 ; i< vmis.size();i++){
+                    if(reverseIt->second == vmis[i]){
+                        vmis_labels.push_back(reverseIt->first);
+                    }
+                }
+            }
 
+            context->addMIS(vmis_labels);
 
-            // set Operand reihenfolge
 		}
 
 		[[nodiscard]] const std::shared_ptr<Subscript> &getSubscript() const {

@@ -31,11 +31,20 @@ namespace einsum::internal {
 		 */
 		bool timed_out = false;
 
-		Context(TimePoint const &timeout = TimePoint::max()) : timeout(timeout) {}
+		/**
+		 *
+		 */
+        std::vector<char> mis;
+
+
+        Context(TimePoint const &timeout = TimePoint::max()) : timeout(timeout) {}
 
 		/*
 		 * Add field for reihenfolge
 		 */
+		void addMIS(std::vector<char> vector){
+		    mis = vector;
+		}
 		/**
 		 * Checks if the timeout is already reached. This method is intentionally unsynchronized.
 		 * @return if the timeout was reached. If true, the timeout was reached for sure.
