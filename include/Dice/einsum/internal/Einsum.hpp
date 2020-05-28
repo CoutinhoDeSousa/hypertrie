@@ -187,12 +187,10 @@ namespace einsum::internal {
             // retransformation to labels
             std::vector<char> vmis_labels;
             std::map<char,int>::const_iterator reverseIt;
-            for (reverseIt = edgesList.begin(); reverseIt != edgesList.end() ; ++reverseIt){
-                for(auto i =0 ; i< vmis.size();i++){
-                    if(reverseIt->second == vmis[i]){
-                        vmis_labels.push_back(reverseIt->first);
-                    }
-                }
+            for (auto &[labelx, node_idx] : edgesList){
+                auto found = std::find(vmis.begin(), vmis.end(), node_idx);
+                if (found != vmis.end())
+                    vmis_labels.push_back(labelx);
             }
 
             context->addMIS(vmis_labels);

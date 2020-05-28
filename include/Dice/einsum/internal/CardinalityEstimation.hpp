@@ -27,8 +27,30 @@ namespace einsum::internal {
 			// Max Idenpended Set gibts schon ? subscribt hash auf Represäntation auf is matched, bau es mir
 			// getIndendetSet()
 			const tsl::hopscotch_set <Label> &operandsLabelSet = sc->getOperandsLabelSet();
-
+            std::set<Label> labelsss{operandsLabelSet.begin(),operandsLabelSet.end()};
 			// lonely labels evtl rausschmeissen, weil die anders übergangen werden
+            // wenn context.mis == "none" dann bau ihn hier . sonst nehm den aus context
+            // map<Subscript, x> : welches Label wird für dieses Subscript verwendet
+            /*
+             * Umbauen des mis berechnung:
+             * Wenn es in der Map < Subscript, Label > eintrag: dann nimm den
+             * sonst guck im MIS nach , nicht vorhandne?
+             * dann bau mis neu für dieses Subscript
+             * map1 und map2 sind im context
+             * map1 "best_label": < Subscript, Label >
+             * map2 "label_candidates": < Subscript, Set<Label> > subscript -> MIS (evtl. subset, weil schon welche rausgenommen wurden)
+             * if ( subscr in mao1)
+             *    // benutze map1[subscr]
+             * else if ( subscr in map2 )
+             * xxxxxxx:
+             *   // l = map2[subscr][0]
+             *   // map1[subscr] = map2[subscr][0] //begin unten drunter beginnt ab stelle l
+             *   // map2[subscr.remove(l)] = vector{map2[subscr].begin()+1, map2[subscr].end()}
+             * else
+             *   // mis bauen
+             *   // map2[subscr] = mis
+             *   // goto: xxxxxxx
+             */
 			const tsl::hopscotch_set <Label> &lonely_non_result_labels = sc->getLonelyNonResultLabelSet();
 			if (operandsLabelSet.size() == 1 || context->mis.size() == 0) {
 				return *operandsLabelSet.begin();
