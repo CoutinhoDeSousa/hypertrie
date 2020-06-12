@@ -229,7 +229,6 @@ namespace einsum::internal {
 		};
 	};
 }
-
 template<>
 struct std::hash<einsum::internal::RawSubscript> {
 	size_t operator()(const einsum::internal::RawSubscript &s) const { return s.hash; }

@@ -183,12 +183,15 @@ namespace einsum::internal {
 				throw std::invalid_argument("label is not used in operands.");
 		}
 
+        bool operator==(const Subscript &rhs) const {
+            return !(raw_subscript != rhs.raw_subscript); //just for testing
+        }
 
-		/**
-		 * for Join
-		 * @param label
-		 * @return
-		 */
+        /**
+         * for Join
+         * @param label
+         * @return
+         */
 		const LabelPossInOperands &getLabelPossInOperands(const Label label) const {
 			assert(operands_label_set.count(label));
 			auto iterator = label_poss_in_operands.find(label);

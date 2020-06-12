@@ -31,21 +31,18 @@ namespace einsum::internal {
 		 */
 		bool timed_out = false;
 
-		/**
-		 *
-		 */
-        std::vector<char> mis;
+
         // unordered_map (hashmap)
+        /* map1 "best_label": < Subscript, Label >
+                * map2 "label_candidates": < Subscript, Set<Label> > subscript -> MIS (evtl. subset, weil schon welche rausgenommen wurden)
+        */
+        std::unordered_map<Subscript, Label> best_label;
+        std::unordered_map<Subscript, std::set<Label>> label_candidates;
 
 
         Context(TimePoint const &timeout = TimePoint::max()) : timeout(timeout) {}
 
-		/*
-		 * Add field for reihenfolge
-		 */
-		void addMIS(std::vector<char> vector){
-		    mis = vector;
-		}
+
 		/**
 		 * Checks if the timeout is already reached. This method is intentionally unsynchronized.
 		 * @return if the timeout was reached. If true, the timeout was reached for sure.
