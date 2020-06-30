@@ -21,7 +21,7 @@ namespace einsum::internal {
 		using const_BoolHypertrie_t = const_BoolHypertrie<key_part_type, map_type, set_type>;
 
 		/**
-		 * Method to get the LAbel with the smallest cardinality (first found if many have the same cardinality)
+		 * Method to get the Label with the smallest cardinality (first found if many have the same cardinality)
 		 * @param operands
 		 * @param label_candidates
 		 * @param sc
@@ -30,94 +30,70 @@ namespace einsum::internal {
 		static Label getMinCardLabel(const std::vector<const_BoolHypertrie_t> &operands,
 		                             const std::shared_ptr<Subscript> &sc,
 		                             std::shared_ptr<Context> context) {
-			// Max Idenpended Set gibts schon ? subscribt hash auf Represäntation auf is matched, bau es mir
-			// getIndendetSet()
-			const tsl::hopscotch_set <Label> &operandsLabelSet = sc->getOperandsLabelSet();
-            std::set<Label> labelsss{operandsLabelSet.begin(),operandsLabelSet.end()};
-			// lonely labels evtl rausschmeissen, weil die anders übergangen werden
-            // wenn context.mis == "none" dann bau ihn hier . sonst nehm den aus context
-            // map<Subscript, x> : welches Label wird für dieses Subscript verwendet
-            /*
-             * Umbauen des mis berechnung:
-             * Wenn es in der Map < Subscript, Label > eintrag: dann nimm den
-             * sonst guck im MIS nach , nicht vorhandne?
-             * dann bau mis neu für dieses Subscript
-             * map1 und map2 sind im context
-             * map1 "best_label": < Subscript, Label >
-             * map2 "label_candidates": < Subscript, Set<Label> > subscript -> MIS (evtl. subset, weil schon welche rausgenommen wurden)
-             * if ( subscr in mao1)
-             *    // benutze map1[subscr]
-             * else if ( subscr in map2 )
-             * xxxxxxx:
-             *   // l = map2[subscr][0]
-             *   // map1[subscr] = map2[subscr][0] //begin unten drunter beginnt ab stelle l
-             *   // map2[subscr.remove(l)] = vector{map2[subscr].begin()+1, map2[subscr].end()}
-             * else
-             *   // mis bauen
-             *   // map2[subscr] = mis
-             *   // goto: xxxxxxx
-             */
-
             Label returnLabel;
-            auto x = context->best_label[*sc];
-            if (x==char(0)){ //leer
-                if( context->label_candidates.find(*sc) == context->label_candidates.end()){
-                    context->label_candidates[*sc] = getMWIS(sc->getRawSubscript().operands);
+            auto bestLabel = context->best_label.find(*sc);
+            if (bestLabel == context->best_label.end()) // There is no best Label
+            {
+                // get Candidate Set
+                std::set<Label> candidates;
+                if (context->label_candidates.find(*sc) == context->label_candidates.end()) {
+                    candidates = getMWIS(sc->getRawSubscript().operands);
+                    // Controllvariable to save it in labelcandidates or not
+                    context->label_candidates[*sc] = candidates;
+                } else {
+                    candidates = context->label_candidates[*sc];
                 }
-                auto bestcandidate = context->label_candidates[*sc].begin();
-                //context->best_label[*sc] = labelcandidates.begin()->se
-                context->best_label[*sc] = *bestcandidate;
-                //hier lösch ich vermutlich für alle den weil ich auf dem globalen pointer arbeite?
 
-                if(context->label_candidates[*sc].size() >= 2){
-                auto start = std::next(context->label_candidates[*sc].begin(),1);
-                context->label_candidates[*sc->removeLabel(*bestcandidate)] =
-                            std::set<Label>{start,
-                                            context->label_candidates[*sc].end()};
+                // Take best Label (atm the first)
+                // if its filled at all
+                auto best_candidate = candidates.begin();
+                if(candidates.size() > 0){
+                context->best_label[*sc] = *best_candidate;
                 }
-                else if (sc->getRawSubscript().operands.size() == 0){ //sonst pack n leeres rein
-                    context->label_candidates[*sc->removeLabel(*bestcandidate)] =
-                            std::set<Label>();
+                if (candidates.size() > 1) {
+                    // deletes the first label for the sub-subscript
+                    auto start = std::next(candidates.begin(), 1);
+                    context->label_candidates[*sc->removeLabel(*best_candidate)] =
+                            std::set<Label>{start, candidates.end()};
+                } else if (sc->getRawSubscript().operands.size() == 0) {
+                    // fill with empty label candidates
+                    context->label_candidates[*sc->removeLabel(*best_candidate)] =
+                            std::set<Label>{};
                 }
 
             }
-            if(context->best_label[*sc] != char(0)){
-            returnLabel = context->best_label[*sc];
+            // only if its filled
+            if(context->best_label.find(*sc) != context->best_label.end()){
+               return context->best_label[*sc];
             }
-            else{
-                //sonst mach das gleihce wie voerher vorerst
-                const tsl::hopscotch_set <Label> &lonely_non_result_labels = sc->getLonelyNonResultLabelSet();
+            // BaseCase as before
+            const tsl::hopscotch_set <Label> &operandsLabelSet = sc->getOperandsLabelSet();
+            if (operandsLabelSet.size() == 1){
+                return *operandsLabelSet.begin();
+            }
+            //test if we need this
+            const tsl::hopscotch_set <Label> &lonely_non_result_labels = sc->getLonelyNonResultLabelSet();
 
-                Label min_label = *operandsLabelSet.begin();
-                double min_cardinality = std::numeric_limits<double>::infinity();
-                for (const Label label : operandsLabelSet) {
-                    if (lonely_non_result_labels.count(label))
-                        continue;
-                    const double label_cardinality = calcCard(operands, label, sc);
-                    if (label_cardinality < min_cardinality) {
-                        min_cardinality = label_cardinality;
-                        min_label = label;
-                    }
+            Label min_label = *operandsLabelSet.begin();
+            double min_cardinality = std::numeric_limits<double>::infinity();
+            for (const Label label : operandsLabelSet) {
+                if (lonely_non_result_labels.count(label))
+                    continue;
+                const double label_cardinality = calcCard(operands, label, sc);
+                if (label_cardinality < min_cardinality) {
+                    min_cardinality = label_cardinality;
+                    min_label = label;
                 }
-                return min_label;
             }
+            return min_label;
 
 
-			if (context->label_candidates[*sc].size() == 0){
-			//if (operandsLabelSet.size() == 1 || context->label_candidates[*sc].size() == 0){
-				return *operandsLabelSet.begin();
-			} else {
-                return returnLabel;
-            }
-
-				// std Min label wird zurück gegeben , wenn alle nicht im result sind klommt das standard min label (das erste )
-				//return min_label;
-			}
+		}
 
 
 	protected:
 		/**
-		 * Calculates the cardinality of an Label in an Step.
+		 * Calculates the cardinality of an Label in a step.
 		 * @tparam T type of the values hold by processed Tensors (Tensor).
 		 * @param operands Operands for this Step.
 		 * @param step current step
@@ -207,17 +183,17 @@ namespace einsum::internal {
                 if(operand_sc.size() == 2){ // just 1 edge, 2 nodes
                     //todo: fehler kontrolle wenn nicht gefunden (füge sie ja oben ein, deshalb nochmal anspechen)
                     //todo: in Methode auslagern
-                    edges.push_back(edgesList.find(operand_sc[0])->second);
-                    edges.push_back(edgesList.find(operand_sc[1])->second);
+                    edges.push_back(edgesList[operand_sc[0]]);
+                    edges.push_back(edgesList[operand_sc[1]]);
                 }
 
                 if(operand_sc.size() == 3){ // 3 edges
-                    edges.push_back(edgesList.find(operand_sc[0])->second);
-                    edges.push_back(edgesList.find(operand_sc[1])->second);
-                    edges.push_back(edgesList.find(operand_sc[0])->second);
-                    edges.push_back(edgesList.find(operand_sc[2])->second);
-                    edges.push_back(edgesList.find(operand_sc[1])->second);
-                    edges.push_back(edgesList.find(operand_sc[2])->second);
+                    edges.push_back(edgesList[operand_sc[0]]);
+                    edges.push_back(edgesList[operand_sc[1]]);
+                    edges.push_back(edgesList[operand_sc[0]]);
+                    edges.push_back(edgesList[operand_sc[2]]);
+                    edges.push_back(edgesList[operand_sc[1]]);
+                    edges.push_back(edgesList[operand_sc[2]]);
 
                 }
 

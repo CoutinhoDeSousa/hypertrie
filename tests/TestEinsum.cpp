@@ -132,31 +132,38 @@ namespace hypertrie::tests::einsum {
 	TEST_CASE("run simple cases", "[einsum]") {
             // Hier extra Tests und auskommentieren
 		std::vector<std::string> subscript_strs{
-                "a->a",
-                "ab->a",
-                "ab->b",
-                "ab->ab",
-                "ab->ba",
-                "ab,a->a",
-                "ab,a->b",
-                "ab,a->ab",
-                "ab,a->ba",
-                "ab,bc->ac",
-                "aa,bb->ab",
-                "aa,bb->b",
-                "aa,bb->a",
-                "ac,cb->c",
-                "ac,cb->b",
-                "a,b,c->abc",
-                "a,b,c->ac",
-                "a,b,c->ca",
-                "a,b,c->a",
-                "a,b,c->c",
-                "a,b,cd->d",
-                "a,bbc,cdc,cf->f",
-                "ab,bc,ca->abc",
-                "ab,bc,ca,ax,xy,ya->a",
-                "aa,ae,ac,ad,a,ab->abcde"
+		    /*
+		        "a->a",
+		        "ab,bc,cd,ef,gf,gh,hi->abcdefg",
+                "a,b,c,d,e,f->abcdef"
+            */
+
+                    "a->a",
+                    "ab->a",
+                    "ab->b",
+                    "ab->ab",
+                    "a,a->a",
+                    "ab->ba",
+                    "ab,a->a",
+                    "ab,a->b",
+                    "ab,a->ab",
+                    "ab,a->ba",
+                    "ab,bc->ac",
+                    "aa,bb->ab",
+                    "aa,bb->b",
+                    "aa,bb->a",
+                    "ac,cb->c",
+                    "ac,cb->b",
+                    "a,b,c->abc",
+                    "a,b,c->ac",
+                    "a,b,c->ca",
+                    "a,b,c->a",
+                    "a,b,c->c",
+                    "a,b,cd->d",
+                    "a,bbc,cdc,cf->f",
+                    "ab,bc,ca->abc",
+                    "ab,bc,ca,ax,xy,ya->a",
+                    "aa,ae,ac,ad,a,ab->abcde"
 
         };
 		for (bool empty : {false, true}) {
