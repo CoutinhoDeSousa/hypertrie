@@ -29,7 +29,7 @@ namespace einsum::internal {
 		 */
 		static Label getMinCardLabel(const std::vector<const_BoolHypertrie_t> &operands,
 		                             const std::shared_ptr<Subscript> &sc,
-		                             std::shared_ptr<Context> context, bool min =) {
+		                             std::shared_ptr<Context> context, bool min = true) {
             // TODO: Min , Max; random als eine Variante
             // Todo: calcCard oder weight als gewicht
             const tsl::hopscotch_set <Label> &operandsLabelSet = sc->getOperandsLabelSet();
