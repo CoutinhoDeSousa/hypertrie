@@ -29,14 +29,37 @@ namespace einsum::internal {
 		 */
 		static Label getMinCardLabel(const std::vector<const_BoolHypertrie_t> &operands,
 		                             const std::shared_ptr<Subscript> &sc,
-		                             std::shared_ptr<Context> context) {
+		                             std::shared_ptr<Context> context, bool min =) {
+            // TODO: Min , Max; random als eine Variante
+            // Todo: calcCard oder weight als gewicht
+            const tsl::hopscotch_set <Label> &operandsLabelSet = sc->getOperandsLabelSet();
             Label returnLabel;
             auto bestLabel = context->best_label.find(*sc);
             if (bestLabel == context->best_label.end()) // There is no best Label
             {
+
                 // get Candidate Set
                 std::set<Label> candidates;
                 if (context->label_candidates.find(*sc) == context->label_candidates.end()) {
+                    // Weight function berechnen und steuerungsvariablen setzen
+                    //test if we need this
+
+                    const tsl::hopscotch_set <Label> &lonely_non_result_labels = sc->getLonelyNonResultLabelSet();
+                    Label label_of_intrest = *operandsLabelSet.begin();
+                    double min_cardinality = std::numeric_limits<double>::infinity();
+                    for (const Label label : operandsLabelSet) {
+                        if (lonely_non_result_labels.count(label))
+                            continue;
+                        const double label_cardinality = calcCard(operands, label, sc);
+                        if (label_cardinality < min_cardinality ) {
+                            min_cardinality = label_cardinality;
+                            label_of_intrest = label;
+                        }
+                    }
+
+
+
+                    // getMwis aufrufen
                     candidates = getMWIS(sc->getRawSubscript().operands);
                     // Controllvariable to save it in labelcandidates or not
                     context->label_candidates[*sc] = candidates;
@@ -67,25 +90,12 @@ namespace einsum::internal {
                return context->best_label[*sc];
             }
             // BaseCase as before
-            const tsl::hopscotch_set <Label> &operandsLabelSet = sc->getOperandsLabelSet();
             if (operandsLabelSet.size() == 1){
                 return *operandsLabelSet.begin();
             }
-            //test if we need this
-            const tsl::hopscotch_set <Label> &lonely_non_result_labels = sc->getLonelyNonResultLabelSet();
 
-            Label min_label = *operandsLabelSet.begin();
-            double min_cardinality = std::numeric_limits<double>::infinity();
-            for (const Label label : operandsLabelSet) {
-                if (lonely_non_result_labels.count(label))
-                    continue;
-                const double label_cardinality = calcCard(operands, label, sc);
-                if (label_cardinality < min_cardinality) {
-                    min_cardinality = label_cardinality;
-                    min_label = label;
-                }
-            }
-            return min_label;
+            return returnLabel; // für den fall das zuviel weggenommen wurde
+            //return min_label;
 
 
 		}
@@ -101,12 +111,13 @@ namespace einsum::internal {
 		 * @return label's cardinality in current step.
 		 */
 		static double calcCard(const std::vector<const_BoolHypertrie_t> &operands, const Label label,
-		                       const std::shared_ptr<Subscript> &sc) {
+		                       const std::shared_ptr<Subscript> &sc, bool min = true) {
 			// get operands that have the label
 			const std::vector<LabelPos> &op_poss = sc->getPossOfOperandsWithLabel(label);
 			std::vector<double> op_dim_cardinalities(op_poss.size(), 1.0);
 			auto label_count = 0;
 			auto min_dim_card = std::numeric_limits<size_t>::max();
+			auto max_dim_card = std::numeric_limits<size_t>::min();
 			tsl::hopscotch_set <size_t> sizes{};
 
 			const LabelPossInOperands &label_poss_in_operands = sc->getLabelPossInOperands(label);
@@ -124,6 +135,10 @@ namespace einsum::internal {
 				// update minimal dimenension cardinality
 				if (min_op_dim_card < min_dim_card)
 					min_dim_card = min_op_dim_card;
+				// update maximal dimension cardinality
+				if (max_op_dim_card > max_dim_card){
+				    max_dim_card = max_op_dim_card;
+				}
 
 				op_dim_cardinalities[i] = double(max_op_dim_card); //
 			}
@@ -137,13 +152,20 @@ namespace einsum::internal {
 					max_op_size = current_op_size;
 			}
 
-			auto const min_dim_card_d = double(min_dim_card);
+
+			// FRAGEN OB DAS SINN MACHT IN BEIDE DIMENSIONEN?
+			auto dim_card_d = double(min_dim_card);
+
+			if(!min){
+			    dim_card_d = double(max_dim_card);
+			}
 
 			double card = std::accumulate(op_dim_cardinalities.cbegin(), op_dim_cardinalities.cend(), double(1),
 			                              [&](double a, double b) {
-				                              return a * min_dim_card_d / b;
+				                              return a * dim_card_d / b;
 			                              }) / sizes.size();
 			return card;
+
 		}
         /**
          * returns for given Operands List the (first) maximum weighted independent set
