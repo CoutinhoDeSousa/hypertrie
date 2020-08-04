@@ -5,6 +5,8 @@
 #include "Dice/einsum/internal/Subscript.hpp"
 #include "Dice/einsum/internal/Entry.hpp"
 #include "Context.hpp"
+#include <algorithm> // TODO : Is das ok?
+
 extern "C"
 {
 
@@ -39,7 +41,7 @@ namespace einsum::internal {
 		 */
 		static Label getMinCardLabel(const std::vector<const_BoolHypertrie_t> &operands,
 		                             const std::shared_ptr<Subscript> &sc,
-		                             std::shared_ptr<Context> context, SORT sort = MINIMUM, WEIGHT weight = CARDINALITY) {
+		                             std::shared_ptr<Context> context, SORT sort = MAXIMUM, WEIGHT weight = CARDINALITY) {
             // TODO: Min , Max; random als eine Variante
             // Todo: calcCard oder weight als gewicht
             const tsl::hopscotch_set <Label> &operandsLabelSet = sc->getOperandsLabelSet();
@@ -56,10 +58,9 @@ namespace einsum::internal {
                     //test if we need this
                     std::map<char,int> edgesList;
                     std::map<int,int> weights;
-                    getWeights(operands,edgesList,weights, weight, sc);
+                    getWeights(operands,edgesList,weights, weight, sc, sort);
                     // getMwis aufrufen
-                    candidates = getMWIS(   sc->getRawSubscript().operands, weights, edgesList); // TODO: hier: map mit weights mitgeben falls nicht die standard weight funktion verwendet wird
-                    // TODO: anschließend sortieren
+                    candidates = getMWIS(   sc->getRawSubscript().operands, weights, edgesList, sort);
                     // candidates sortieren anhand sort mit weightmap
                     // Controllvariable to save it in labelcandidates or not
                     context->label_candidates[*sc] = candidates;
@@ -73,7 +74,7 @@ namespace einsum::internal {
                 if(candidates.size() > 0){
                 context->best_label[*sc] = *best_candidate;
                 }
-                if (candidates.size() > 1) { // TODO: only update if not there already
+                if (candidates.size() > 1) {
                     // deletes the first label for the sub-subscript
                     auto subsubscript = *sc->removeLabel(*best_candidate);
                     if (!context->label_candidates.count(subsubscript)) //if its empty
@@ -165,9 +166,17 @@ namespace einsum::internal {
 			return card;
 
 		}
-
+		/**
+		 * fills weights & edgeslist maps based on parameters
+		 * @param operands
+		 * @param edgesList
+		 * @param weights
+		 * @param weight
+		 * @param sc
+		 * @param sort
+		 */
 		static void getWeights(const std::vector<const_BoolHypertrie_t> &operands,std::map<char,int> &edgesList,
-        std::map<int,int> &weights, WEIGHT weight,const std::shared_ptr<Subscript> &sc){
+        std::map<int,int> &weights, WEIGHT weight,const std::shared_ptr<Subscript> &sc, SORT sort){
 
             int id=0;
                 for (const auto &operand_sc : sc->getRawSubscript().operands) {
@@ -195,7 +204,11 @@ namespace einsum::internal {
                         continue;
                     }
                     // find weight
-                    weights[findIDofLabel(weights,edgesList,label)] = calcCard(operands, label, sc);
+                    bool minimum = true;
+                    if (sort == MAXIMUM){ // only in the maximum case it matters
+                        minimum = false;
+                    }
+                    weights[findIDofLabel(weights,edgesList,label)] = calcCard(operands, label, sc, minimum);
 
                 }
 
@@ -224,7 +237,7 @@ namespace einsum::internal {
          * @param operands operand list
          * @return Labelset with the mwis
          */
-	    static std::set<Label> getMWIS(const einsum::internal::OperandsSc &operands, std::map<int,int> &weights, std::map<char,int> &edgesList){
+	    static std::set<Label> getMWIS(const einsum::internal::OperandsSc &operands, std::map<int,int> &weights, std::map<char,int> &edgesList, SORT sort){
 // Todo: Weights als argument hinzufügen
             igraph_t graph;
             igraph_vector_t v;
@@ -321,6 +334,13 @@ namespace einsum::internal {
                 auto found = std::find(vmis.begin(), vmis.end(), node_idx);
                 if (found != vmis.end())
                     vmis_labels.push_back(labelx);
+            }
+            // Sorting
+            if(sort== MAXIMUM){
+                std::sort(vmis_labels.begin(),vmis_labels.end(),std::greater<char>());
+            }
+            if(sort== RANDOM){
+                std::random_shuffle(vmis_labels.begin(),vmis_labels.end());
             }
 
             return std::set<Label>{vmis_labels.begin(),vmis_labels.end()};
