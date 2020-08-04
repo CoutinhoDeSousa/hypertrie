@@ -12,8 +12,18 @@ extern "C"
 #include <igraph/igraph_cliques.h>  // import for 3.3 igraph_maximal_independent_vertex_sets
 }
 
-namespace einsum::internal {
 
+namespace einsum::internal {
+// enum local for threestate
+    enum SORT{
+        MINIMUM,
+        MAXIMUM,
+        RANDOM
+    };
+    enum WEIGHT{
+        NORMAL,
+        CARDINALITY
+    };
 
 	template<typename key_part_type, template<typename, typename> class map_type,
 			template<typename> class set_type>
@@ -29,7 +39,7 @@ namespace einsum::internal {
 		 */
 		static Label getMinCardLabel(const std::vector<const_BoolHypertrie_t> &operands,
 		                             const std::shared_ptr<Subscript> &sc,
-		                             std::shared_ptr<Context> context, bool min = true) {
+		                             std::shared_ptr<Context> context, SORT sort = MINIMUM, WEIGHT weight = CARDINALITY) {
             // TODO: Min , Max; random als eine Variante
             // Todo: calcCard oder weight als gewicht
             const tsl::hopscotch_set <Label> &operandsLabelSet = sc->getOperandsLabelSet();
@@ -40,27 +50,17 @@ namespace einsum::internal {
 
                 // get Candidate Set
                 std::set<Label> candidates;
-                if (context->label_candidates.find(*sc) == context->label_candidates.end()) {
+                //                if (context->label_candidates.find(*sc) == context->label_candidates.end()) {
+                if (!context->label_candidates.count(*sc)) {
                     // Weight function berechnen und steuerungsvariablen setzen
                     //test if we need this
-
-                    const tsl::hopscotch_set <Label> &lonely_non_result_labels = sc->getLonelyNonResultLabelSet();
-                    Label label_of_intrest = *operandsLabelSet.begin();
-                    double min_cardinality = std::numeric_limits<double>::infinity();
-                    for (const Label label : operandsLabelSet) {
-                        if (lonely_non_result_labels.count(label))
-                            continue;
-                        const double label_cardinality = calcCard(operands, label, sc);
-                        if (label_cardinality < min_cardinality ) {
-                            min_cardinality = label_cardinality;
-                            label_of_intrest = label;
-                        }
-                    }
-
-
-
+                    std::map<char,int> edgesList;
+                    std::map<int,int> weights;
+                    getWeights(operands,edgesList,weights, weight, sc);
                     // getMwis aufrufen
-                    candidates = getMWIS(sc->getRawSubscript().operands);
+                    candidates = getMWIS(   sc->getRawSubscript().operands, weights, edgesList); // TODO: hier: map mit weights mitgeben falls nicht die standard weight funktion verwendet wird
+                    // TODO: anschließend sortieren
+                    // candidates sortieren anhand sort mit weightmap
                     // Controllvariable to save it in labelcandidates or not
                     context->label_candidates[*sc] = candidates;
                 } else {
@@ -73,7 +73,7 @@ namespace einsum::internal {
                 if(candidates.size() > 0){
                 context->best_label[*sc] = *best_candidate;
                 }
-                if (candidates.size() > 1) {
+                if (candidates.size() > 1) { // TODO: only update if not there already
                     // deletes the first label for the sub-subscript
                     auto start = std::next(candidates.begin(), 1);
                     context->label_candidates[*sc->removeLabel(*best_candidate)] =
@@ -93,8 +93,8 @@ namespace einsum::internal {
             if (operandsLabelSet.size() == 1){
                 return *operandsLabelSet.begin();
             }
-
-            return returnLabel; // für den fall das zuviel weggenommen wurde
+            throw std::logic_error{"should never be reached."};
+             return returnLabel; // für den fall das zuviel weggenommen wurde
             //return min_label;
 
 
@@ -116,8 +116,7 @@ namespace einsum::internal {
 			const std::vector<LabelPos> &op_poss = sc->getPossOfOperandsWithLabel(label);
 			std::vector<double> op_dim_cardinalities(op_poss.size(), 1.0);
 			auto label_count = 0;
-			auto min_dim_card = std::numeric_limits<size_t>::max();
-			auto max_dim_card = std::numeric_limits<size_t>::min();
+			auto best_dim_card = (min) ? std::numeric_limits<size_t>::max() : std::numeric_limits<size_t>::min();
 			tsl::hopscotch_set <size_t> sizes{};
 
 			const LabelPossInOperands &label_poss_in_operands = sc->getLabelPossInOperands(label);
@@ -125,22 +124,20 @@ namespace einsum::internal {
 			for (auto[i, op_pos] : iter::enumerate(op_poss)) {
 				const auto &operand = operands[op_pos];
 				const auto op_dim_cards = operand.getCards(label_poss_in_operands[op_pos]);
-				const auto min_op_dim_card = *std::min_element(op_dim_cards.cbegin(), op_dim_cards.cend());
-				const auto max_op_dim_card = *std::max_element(op_dim_cards.cbegin(), op_dim_cards.cend());
+				const auto best_op_dim_card = (min) ? *std::min_element(op_dim_cards.cbegin(), op_dim_cards.cend())
+				        : *std::max_element(op_dim_cards.cbegin(), op_dim_cards.cend());
+
 
 				for (const auto &op_dim_card : op_dim_cards)
 					sizes.insert(op_dim_card);
 
 				label_count += op_dim_cards.size();
-				// update minimal dimenension cardinality
-				if (min_op_dim_card < min_dim_card)
-					min_dim_card = min_op_dim_card;
-				// update maximal dimension cardinality
-				if (max_op_dim_card > max_dim_card){
-				    max_dim_card = max_op_dim_card;
-				}
+                // update minimal dimenension cardinality#
 
-				op_dim_cardinalities[i] = double(max_op_dim_card); //
+				if ((min and best_op_dim_card < best_dim_card) or (not min and best_op_dim_card > best_dim_card))
+                    best_dim_card = best_op_dim_card;
+
+				op_dim_cardinalities[i] = double(best_op_dim_card); //
 			}
 
 			std::size_t max_op_size = 0;
@@ -152,13 +149,7 @@ namespace einsum::internal {
 					max_op_size = current_op_size;
 			}
 
-
-			// FRAGEN OB DAS SINN MACHT IN BEIDE DIMENSIONEN?
-			auto dim_card_d = double(min_dim_card);
-
-			if(!min){
-			    dim_card_d = double(max_dim_card);
-			}
+			auto dim_card_d = double(best_dim_card);
 
 			double card = std::accumulate(op_dim_cardinalities.cbegin(), op_dim_cardinalities.cend(), double(1),
 			                              [&](double a, double b) {
@@ -167,13 +158,67 @@ namespace einsum::internal {
 			return card;
 
 		}
+
+		static void getWeights(const std::vector<const_BoolHypertrie_t> &operands,std::map<char,int> &edgesList,
+        std::map<int,int> &weights, WEIGHT weight,const std::shared_ptr<Subscript> &sc){
+
+            int id=0;
+                for (const auto &operand_sc : sc->getRawSubscript().operands) {
+                    for (const auto &op_for_weight: operand_sc) {
+                        std::pair<std::map<char, int>::iterator, bool> itNodes;
+                        itNodes = edgesList.insert(std::pair<char, int>(op_for_weight, id));
+
+                        if (itNodes.second) { //added new
+                            weights.insert(std::pair<int, int>(id, 1));
+                            id++;
+                        } else { //already in
+                            int foundIndex = std::distance(edgesList.begin(), itNodes.first);
+                            weights[foundIndex]++;
+                        }
+                    }
+                }
+            if(weight == CARDINALITY){
+                const tsl::hopscotch_set <Label> &operandsLabelSet = sc->getOperandsLabelSet();
+                const tsl::hopscotch_set <Label> &lonely_non_result_labels = sc->getLonelyNonResultLabelSet();
+                for (const Label label : operandsLabelSet) {
+                    //auto found = edgesList.find()
+                    if (lonely_non_result_labels.count(label)){
+                        // lonely weight auf 0 setzen?
+                        weights[findIDofLabel(weights, edgesList, label)] = 0;
+                        continue;
+                    }
+                    // find weight
+                    weights[findIDofLabel(weights,edgesList,label)] = calcCard(operands, label, sc);
+
+                }
+
+            }
+		}
+		/**
+		 * returns id of Label in the given maps;
+		 * @param weights
+		 * @param edgesList
+		 * @param label
+		 * @return
+		 */
+		static auto findIDofLabel(std::map<int,int> &weights, std::map<char,int> &edgesList, Label label){
+		    auto iterator = edgesList.find(label);
+		    if( iterator != edgesList.end()){
+		        return weights.find(iterator->second)->second;
+
+		    }
+
+            throw std::logic_error{"ID of Label couldn't be found"};
+		}
+
+
         /**
          * returns for given Operands List the (first) maximum weighted independent set
          * @param operands operand list
          * @return Labelset with the mwis
          */
-	    static std::set<Label> getMWIS(const einsum::internal::OperandsSc &operands){
-
+	    static std::set<Label> getMWIS(const einsum::internal::OperandsSc &operands, std::map<int,int> &weights, std::map<char,int> &edgesList){
+// Todo: Weights als argument hinzufügen
             igraph_t graph;
             igraph_vector_t v;
             igraph_vector_ptr_t mis = IGRAPH_VECTOR_PTR_NULL;
@@ -182,33 +227,19 @@ namespace einsum::internal {
              * Start building a graph
              */
             std::vector<int> edges;
+            /*
             std::map<char,int> edgesList;
             std::map<int,int> weights;
             // zähle 2 maps hoch (label zu id & id zu weight)
             int id = 0;
+           */
             for (const auto &operand_sc : operands) {
-                for(const auto &op_for_weight: operand_sc){
-                    std::pair <std::map<char, int>::iterator, bool> itNodes;
-                    itNodes = edgesList.insert( std::pair<char, int>(op_for_weight,id));
-
-                    if(itNodes.second){ //added new
-                        weights.insert(std::pair<int,int>(id, 1));
-                        id++;
-                    }
-                    else{ //already in
-                        int foundIndex = std::distance(edgesList.begin(), itNodes.first);
-                        weights[foundIndex]++;
-                    }
-                }
-                //adding into edgevector based on the operand size
-
                 if(operand_sc.size() == 2){ // just 1 edge, 2 nodes
                     //todo: fehler kontrolle wenn nicht gefunden (füge sie ja oben ein, deshalb nochmal anspechen)
                     //todo: in Methode auslagern
                     edges.push_back(edgesList[operand_sc[0]]);
                     edges.push_back(edgesList[operand_sc[1]]);
                 }
-
                 if(operand_sc.size() == 3){ // 3 edges
                     edges.push_back(edgesList[operand_sc[0]]);
                     edges.push_back(edgesList[operand_sc[1]]);
@@ -275,7 +306,6 @@ namespace einsum::internal {
             /*
              * End building a graph
              */
-            // TODO: build it directly into a set instead of a vector that get carried over in a set
             // retransformation to labels
 
             std::vector<char> vmis_labels;
