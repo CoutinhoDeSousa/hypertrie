@@ -75,9 +75,13 @@ namespace einsum::internal {
                 }
                 if (candidates.size() > 1) { // TODO: only update if not there already
                     // deletes the first label for the sub-subscript
+                    auto subsubscript = *sc->removeLabel(*best_candidate);
+                    if (!context->label_candidates.count(subsubscript)) //if its empty
+                    {
                     auto start = std::next(candidates.begin(), 1);
-                    context->label_candidates[*sc->removeLabel(*best_candidate)] =
+                    context->label_candidates[subsubscript] =
                             std::set<Label>{start, candidates.end()};
+                    }
                 } else if (sc->getRawSubscript().operands.size() == 0) {
                     // fill with empty label candidates
                     context->label_candidates[*sc->removeLabel(*best_candidate)] =
@@ -106,6 +110,9 @@ namespace einsum::internal {
 		 * Calculates the cardinality of an Label in a step.
 		 * @tparam T type of the values hold by processed Tensors (Tensor).
 		 * @param operands Operands for this Step.
+		 * @param step current step
+		 * @param label the label
+		 * @return label's cardinality in current step.
 		 * @param step current step
 		 * @param label the label
 		 * @return label's cardinality in current step.
