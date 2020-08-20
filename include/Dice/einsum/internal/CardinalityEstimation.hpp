@@ -27,6 +27,9 @@ namespace einsum::internal {
         CARDINALITY
     };
 
+    static SORT sort_order = MINIMUM;
+    static WEIGHT weight_func = NORMAL;
+
 	template<typename key_part_type, template<typename, typename> class map_type,
 			template<typename> class set_type>
 	struct CardinalityEstimation {
@@ -41,7 +44,7 @@ namespace einsum::internal {
 		 */
 		static Label getMinCardLabel(const std::vector<const_BoolHypertrie_t> &operands,
 		                             const std::shared_ptr<Subscript> &sc,
-		                             std::shared_ptr<Context> context, SORT sort = MAXIMUM, WEIGHT weight = CARDINALITY) {
+		                             std::shared_ptr<Context> context, SORT sort = sort_order, WEIGHT weight = weight_func) {
             // TODO: Min , Max; random als eine Variante
             // Todo: calcCard oder weight als gewicht
             const tsl::hopscotch_set <Label> &operandsLabelSet = sc->getOperandsLabelSet();
@@ -255,8 +258,6 @@ namespace einsum::internal {
            */
             for (const auto &operand_sc : operands) {
                 if(operand_sc.size() == 2){ // just 1 edge, 2 nodes
-                    //todo: fehler kontrolle wenn nicht gefunden (füge sie ja oben ein, deshalb nochmal anspechen)
-                    //todo: in Methode auslagern
                     edges.push_back(edgesList[operand_sc[0]]);
                     edges.push_back(edgesList[operand_sc[1]]);
                 }
@@ -342,6 +343,7 @@ namespace einsum::internal {
             if(sort== RANDOM){
                 std::random_shuffle(vmis_labels.begin(),vmis_labels.end());
             }
+            //else it is a minimum sort
 
             return std::set<Label>{vmis_labels.begin(),vmis_labels.end()};
         }

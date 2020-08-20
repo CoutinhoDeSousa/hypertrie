@@ -93,6 +93,8 @@ namespace einsum::internal {
 			this->entry = &entry;
 			ended_ = false;
 			Label last_label = label;
+            // Sort & Weight hier setzen
+            //CardinalityEstimation::
 			label = CardinalityEstimation_t::getMinCardLabel(operands, this->subscript, this->context);
 			if (label != last_label) {
 				label_poss_in_ops = this->subscript->getLabelPossInOperands(label);
